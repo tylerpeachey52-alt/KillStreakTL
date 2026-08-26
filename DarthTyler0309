@@ -100,6 +100,7 @@ task.spawn(function()
                         humanoid:EquipTool(secondTool)
                     end
                     
+                    secondTool.Enabled = true
                     secondTool:Activate()
                 end
             end
