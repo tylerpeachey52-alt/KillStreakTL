@@ -1,4 +1,109 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+local Lighting = game:GetService("Lighting")
 local VirtualUser = game:GetService("VirtualUser")
+
+local LocalPlayer = Players.LocalPlayer
+
+local function getNil(name, class)
+    for _, v in pairs(getnilinstances()) do
+        if v.ClassName == class and v.Name == name then
+            return v
+        end
+    end
+end
+
+local function removeAtmosphere()
+    local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+    if atmosphere then
+        atmosphere:Destroy()
+    end
+end
+
+removeAtmosphere()
+
+Lighting.ChildAdded:Connect(function(child)
+    if child:IsA("Atmosphere") then
+        task.wait()
+        child:Destroy()
+    end
+end)
+
+LocalPlayer.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "KillStreakTrackerGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = CoreGui
+
+local TextLabel = Instance.new("TextLabel")
+TextLabel.Name = "KillStreakLabel"
+TextLabel.Size = UDim2.new(0, 200, 0, 50)
+TextLabel.Position = UDim2.new(0, 50, 0, 50)
+TextLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextLabel.TextScaled = true
+TextLabel.Font = Enum.Font.SourceSansBold
+TextLabel.Text = "Kill Streak: 0"
+TextLabel.Parent = ScreenGui
+
+task.spawn(function()
+    while true do
+        pcall(function()
+            local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+            if leaderstats then
+                local killStreak = leaderstats:FindFirstChild("Kill Streak")
+                if killStreak then
+                    TextLabel.Text = "Kill Streak: " .. tostring(killStreak.Value)
+                end
+            end
+        end)
+        task.wait(0.5)
+    end
+end)
+
+local targetTool = nil
+
+local function findSecondTool()
+    task.spawn(function()
+        while not targetTool do
+            pcall(function()
+                local char = LocalPlayer.Character
+                local backpack = LocalPlayer:FindFirstChild("Backpack")
+                if char and backpack then
+                    local tools = {}
+                    for _, v in ipairs(backpack:GetChildren()) do
+                        if v:IsA("Tool") then
+                            table.insert(tools, v)
+                        end
+                    end
+                    for _, v in ipairs(char:GetChildren()) do
+                        if v:IsA("Tool") then
+                            table.insert(tools, v)
+                        end
+                    end
+                    if #tools >= 2 then
+                        targetTool = tools[2]
+                    end
+                end
+            end)
+            task.wait(0.5)
+        end
+    end)
+end
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    targetTool = nil
+    findSecondTool()
+end)
+
+findSecondTool()
 
 task.spawn(function()
     while true do
@@ -7,37 +112,113 @@ task.spawn(function()
             local humanoid = char and char:FindFirstChildOfClass("Humanoid")
             local backpack = LocalPlayer:FindFirstChild("Backpack")
             
-            if char and humanoid and backpack then
-                local tools = {}
-                for _, v in ipairs(backpack:GetChildren()) do
-                    if v:IsA("Tool") then
-                        table.insert(tools, v)
-                    end
-                end
+            if char and humanoid and backpack and targetTool and targetTool.Parent then
                 for _, v in ipairs(char:GetChildren()) do
-                    if v:IsA("Tool") then
-                        table.insert(tools, v)
+                    if v:IsA("Tool") and v ~= targetTool then
+                        v.Parent = backpack
                     end
                 end
                 
-                local secondTool = tools[2]
-                if secondTool then
-                    for _, v in ipairs(char:GetChildren()) do
-                        if v:IsA("Tool") and v ~= secondTool then
-                            v.Parent = backpack
-                        end
-                    end
-                    
-                    if secondTool.Parent ~= char then
-                        humanoid:EquipTool(secondTool)
-                    end
-                    
-                    -- Simulate a left-click to trigger the tool's click detection
-                    VirtualUser:CaptureController()
-                    VirtualUser:ClickButton1(Vector2.new(500, 500))
+                if targetTool.Parent ~= char then
+                    humanoid:EquipTool(targetTool)
                 end
+                
+                targetTool:Activate()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton1(Vector2.new(500, 500))
             end
         end)
         task.wait(1)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        ReplicatedStorage.Remotes.RequestEquip:FireServer("Food", 50)
+        task.wait(10)
+        ReplicatedStorage.Remotes.RequestEquip:FireServer("Food", 51)
+        task.wait(900)
+    end
+end)
+
+local function teleportPlayerToMe(otherPlayer)
+    if otherPlayer == LocalPlayer then return end
+
+    otherPlayer.CharacterAdded:Connect(function(char)
+        task.spawn(function()
+            local rootPart = char:WaitForChild("HumanoidRootPart", 5)
+            while rootPart and char and char.Parent and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") do
+                local myRoot = LocalPlayer.Character.HumanoidRootPart
+                rootPart.CFrame = myRoot.CFrame
+                RunService.RenderStepped:Wait()
+            end
+        end)
+    end)
+
+    if otherPlayer.Character then
+        task.spawn(function()
+            local char = otherPlayer.Character
+            local rootPart = char:WaitForChild("HumanoidRootPart", 5)
+            while rootPart and char and char.Parent and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") do
+                local myRoot = LocalPlayer.Character.HumanoidRootPart
+                rootPart.CFrame = myRoot.CFrame
+                RunService.RenderStepped:Wait()
+            end
+        end)
+    end
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+    teleportPlayerToMe(p)
+end
+
+Players.PlayerAdded:Connect(teleportPlayerToMe)
+
+local function applyLock()
+    task.spawn(function()
+        while true do
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char then
+                    local rootPart = char:FindFirstChild("HumanoidRootPart")
+                    local humanoid = char:FindFirstChildOfClass("Humanoid")
+                    local targetModel = workspace:FindFirstChild("BadLeaderboard") and workspace.BadLeaderboard:FindFirstChild("DarthTyler0309")
+                    if rootPart and targetModel then
+                        local targetPart = targetModel:IsA("Model") and targetModel.PrimaryPart or targetModel:FindFirstChildWhichIsA("BasePart")
+                        if targetPart then
+                            rootPart.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
+                            rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                            rootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                            if humanoid then
+                                humanoid.PlatformStand = true
+                            end
+                        end
+                    end
+                end
+            end)
+            task.wait(0)
+        end
+    end)
+end
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    applyLock()
+end)
+
+applyLock()
+
+pcall(function()
+    local promptOverlay = CoreGui:WaitForChild("RobloxPromptGui"):WaitForChild("promptOverlay", 5)
+    if promptOverlay then
+        promptOverlay.ChildAdded:Connect(function(child)
+            if child.Name == "ErrorPrompt" then
+                task.spawn(function()
+                    task.wait(120)
+                    pcall(function()
+                        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+                    end)
+                end)
+            end
+        end)
     end
 end)
