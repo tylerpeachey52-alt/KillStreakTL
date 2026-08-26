@@ -90,9 +90,16 @@ task.spawn(function()
                 
                 local secondTool = tools[2]
                 if secondTool then
+                    for _, v in ipairs(char:GetChildren()) do
+                        if v:IsA("Tool") and v ~= secondTool then
+                            v.Parent = backpack
+                        end
+                    end
+                    
                     if secondTool.Parent ~= char then
                         humanoid:EquipTool(secondTool)
                     end
+                    
                     secondTool:Activate()
                 end
             end
