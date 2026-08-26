@@ -74,20 +74,25 @@ local function findSecondTool()
     task.spawn(function()
         while not targetTool do
             pcall(function()
-                local char = LocalPlayer.Character
                 local backpack = LocalPlayer:FindFirstChild("Backpack")
-                if char and backpack then
+                local char = LocalPlayer.Character
+                if backpack then
                     local tools = {}
+                    -- Gather from backpack first in correct slot order
                     for _, v in ipairs(backpack:GetChildren()) do
                         if v:IsA("Tool") then
                             table.insert(tools, v)
                         end
                     end
-                    for _, v in ipairs(char:GetChildren()) do
-                        if v:IsA("Tool") then
-                            table.insert(tools, v)
+                    -- Include equipped tools if any
+                    if char then
+                        for _, v in ipairs(char:GetChildren()) do
+                            if v:IsA("Tool") then
+                                table.insert(tools, v)
+                            end
                         end
                     end
+                    
                     if #tools >= 2 then
                         targetTool = tools[2]
                     end
@@ -113,16 +118,19 @@ task.spawn(function()
             local backpack = LocalPlayer:FindFirstChild("Backpack")
             
             if char and humanoid and backpack and targetTool and targetTool.Parent then
+                -- Put away any other tools currently equipped
                 for _, v in ipairs(char:GetChildren()) do
                     if v:IsA("Tool") and v ~= targetTool then
                         v.Parent = backpack
                     end
                 end
                 
+                -- Equip the second tool if not already equipped
                 if targetTool.Parent ~= char then
                     humanoid:EquipTool(targetTool)
                 end
                 
+                -- Use the tool
                 targetTool:Activate()
                 VirtualUser:CaptureController()
                 VirtualUser:ClickButton1(Vector2.new(500, 500))
