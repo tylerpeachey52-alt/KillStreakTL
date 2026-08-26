@@ -69,12 +69,36 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    task.spawn(function()
-        ReplicatedStorage.Remotes.UseTool:FireServer("Food")
-    end)
-    task.spawn(function()
-        ReplicatedStorage.Remotes.UseTool:FireServer("Punch")
-    end)
+    while true do
+        pcall(function()
+            local char = LocalPlayer.Character
+            local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+            local backpack = LocalPlayer:FindFirstChild("Backpack")
+            
+            if char and humanoid and backpack then
+                local tools = {}
+                for _, v in ipairs(backpack:GetChildren()) do
+                    if v:IsA("Tool") then
+                        table.insert(tools, v)
+                    end
+                end
+                for _, v in ipairs(char:GetChildren()) do
+                    if v:IsA("Tool") then
+                        table.insert(tools, v)
+                    end
+                end
+                
+                local secondTool = tools[2]
+                if secondTool then
+                    if secondTool.Parent ~= char then
+                        humanoid:EquipTool(secondTool)
+                    end
+                    secondTool:Activate()
+                end
+            end
+        end)
+        task.wait(1)
+    end
 end)
 
 task.spawn(function()
