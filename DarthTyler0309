@@ -4,6 +4,7 @@ local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 local Lighting = game:GetService("Lighting")
+local UserGameSettings = UserSettings():GetService("UserGameSettings")
 local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
@@ -15,6 +16,12 @@ local function getNil(name, class)
         end
     end
 end
+
+pcall(function()
+    UserGameSettings.SavedQualityLevel = Enum.SavedQualityLevel.Level01
+    Lighting.GlobalShadows = false
+    Lighting.FogEnd = 9e9
+end)
 
 local function removeAtmosphere()
     local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
@@ -31,6 +38,37 @@ Lighting.ChildAdded:Connect(function(child)
         child:Destroy()
     end
 end)
+
+local function monitorCharacter(char)
+    task.spawn(function()
+        while char and char.Parent do
+            for _, v in ipairs(char:GetDescendants()) do
+                if v:IsA("ForceField") then
+                    v:Destroy()
+                end
+            end
+            task.wait(0.05)
+        end
+    end)
+    char.DescendantAdded:Connect(function(child)
+        if child:IsA("ForceField") then
+            child:Destroy()
+        end
+    end)
+end
+
+local function setupPlayer(p)
+    p.CharacterAdded:Connect(monitorCharacter)
+    if p.Character then
+        monitorCharacter(p.Character)
+    end
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+    setupPlayer(p)
+end
+
+Players.PlayerAdded:Connect(setupPlayer)
 
 LocalPlayer.Idled:Connect(function()
     VirtualUser:CaptureController()
@@ -78,13 +116,11 @@ local function findSecondTool()
                 local char = LocalPlayer.Character
                 if backpack then
                     local tools = {}
-                    -- Gather from backpack first in correct slot order
                     for _, v in ipairs(backpack:GetChildren()) do
                         if v:IsA("Tool") then
                             table.insert(tools, v)
                         end
                     end
-                    -- Include equipped tools if any
                     if char then
                         for _, v in ipairs(char:GetChildren()) do
                             if v:IsA("Tool") then
@@ -118,19 +154,16 @@ task.spawn(function()
             local backpack = LocalPlayer:FindFirstChild("Backpack")
             
             if char and humanoid and backpack and targetTool and targetTool.Parent then
-                -- Put away any other tools currently equipped
                 for _, v in ipairs(char:GetChildren()) do
                     if v:IsA("Tool") and v ~= targetTool then
                         v.Parent = backpack
                     end
                 end
                 
-                -- Equip the second tool if not already equipped
                 if targetTool.Parent ~= char then
                     humanoid:EquipTool(targetTool)
                 end
                 
-                -- Use the tool
                 targetTool:Activate()
                 VirtualUser:CaptureController()
                 VirtualUser:ClickButton1(Vector2.new(500, 500))
