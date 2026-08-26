@@ -102,32 +102,32 @@ end
 
 Players.PlayerAdded:Connect(teleportPlayerToMe)
 
-LocalPlayer.CharacterAdded:Connect(function(char)
+local function applyLock()
     task.spawn(function()
-        local rootPart = char:WaitForChild("HumanoidRootPart", 5)
-        local targetModel = workspace:FindFirstChild("BadLeaderboard") and workspace.BadLeaderboard:FindFirstChild("DarthTyler0309")
-        if rootPart and targetModel then
-            local targetPart = targetModel:IsA("Model") and targetModel.PrimaryPart or targetModel:FindFirstChildWhichIsA("BasePart")
-            if targetPart then
-                rootPart.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
-            end
-        end
-    end)
-end)
-
-if LocalPlayer.Character then
-    task.spawn(function()
-        local char = LocalPlayer.Character
-        local rootPart = char:WaitForChild("HumanoidRootPart", 5)
-        local targetModel = workspace:FindFirstChild("BadLeaderboard") and workspace.BadLeaderboard:FindFirstChild("DarthTyler0309")
-        if rootPart and targetModel then
-            local targetPart = targetModel:IsA("Model") and targetModel.PrimaryPart or targetModel:FindFirstChildWhichIsA("BasePart")
-            if targetPart then
-                rootPart.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
-            end
+        while true do
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char then
+                    local rootPart = char:FindFirstChild("HumanoidRootPart")
+                    local targetModel = workspace:FindFirstChild("BadLeaderboard") and workspace.BadLeaderboard:FindFirstChild("DarthTyler0309")
+                    if rootPart and targetModel then
+                        local targetPart = targetModel:IsA("Model") and targetModel.PrimaryPart or targetModel:FindFirstChildWhichIsA("BasePart")
+                        if targetPart then
+                            rootPart.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
+                        end
+                    end
+                end
+            end)
+            task.wait(0)
         end
     end)
 end
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    applyLock()
+end)
+
+applyLock()
 
 pcall(function()
     local promptOverlay = CoreGui:WaitForChild("RobloxPromptGui"):WaitForChild("promptOverlay", 5)
