@@ -173,6 +173,17 @@ task.spawn(function()
     end
 end)
 
+-- Added: Food and Punch UseTool loop every 0.01 seconds
+task.spawn(function()
+    while true do
+        pcall(function()
+            ReplicatedStorage.Remotes.UseTool:FireServer("Food")
+            ReplicatedStorage.Remotes.UseTool:FireServer("Punch")
+        end)
+        task.wait(0.01)
+    end
+end)
+
 task.spawn(function()
     while true do
         ReplicatedStorage.Remotes.RequestEquip:FireServer("Food", 50)
